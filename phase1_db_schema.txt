@@ -1,0 +1,65 @@
+Phase 1 JDBM Database Schema Design
+
+Database base path: db/phase1
+
+Named HTree Tables
+
+1) urlToId
+- Key: String (normalized URL)
+- Value: Integer (page ID)
+- Purpose: Fast URL -> pageID lookup, avoid duplicate fetch/index.
+
+2) idToUrl
+- Key: Integer (page ID)
+- Value: String (normalized URL)
+- Purpose: Reverse lookup for output and link traversal.
+
+3) pageMeta
+- Key: Integer (page ID)
+- Value: PageInfo (Serializable object)
+- Fields:
+  - pageId: int
+  - url: String
+  - title: String
+  - lastModified: long (epoch millis)
+  - size: int
+  - bodyFreq: HashMap<String, Integer>
+  - bodyPositions: HashMap<String, ArrayList<Integer>>
+  - titlePositions: HashMap<String, ArrayList<Integer>>
+- Purpose: Forward index and document metadata for reporting and incremental re-index.
+
+4) bodyIndex
+- Key: String (stem)
+- Value: HashMap<Integer, PostingData>
+- PostingData fields:
+  - freq: int
+  - positions: ArrayList<Integer>
+- Purpose: Inverted index for page body with positional information (supports phrase matching).
+
+5) titleIndex
+- Key: String (stem)
+- Value: HashMap<Integer, PostingData>
+- Purpose: Inverted index for titles with positional information (supports phrase matching and future title boost).
+
+6) parentToChildren
+- Key: Integer (parent page ID)
+- Value: HashSet<Integer> (child page IDs)
+- Purpose: Parent -> child link graph traversal.
+
+7) childToParents
+- Key: Integer (child page ID)
+- Value: HashSet<Integer> (parent page IDs)
+- Purpose: Reverse link traversal (child -> parent).
+
+8) metadata
+- Key: String
+- Value: Integer
+- Current key used:
+  - nextPageId: next available page ID
+- Purpose: Persist global crawler state across runs.
+
+Design rationale
+- Split forward and inverted structures to support both indexing and result rendering.
+- Positional postings are stored for phrase-search compatibility in later phases.
+- Link graph is stored in both directions for quick parent/child access.
+- Existing page records can be removed from inverted indexes and re-indexed when remote last-modified is newer.

@@ -1,1 +1,1 @@
-# COMP4321-Andy
+# COMP4321_proj
